@@ -19,6 +19,8 @@ npm run build     # production bundle in dist/
 npm run palette   # compare candidate palette separation
 ```
 
+For Cloudflare Pages, use build command `npm run build` and output directory `dist`.
+
 ## What V1 deliberately changed
 
 - The outer shape stays hexagonal because it gives three equivalent lattice directions and a distinctive silhouette. It is less pixel-efficient than a rectangular crop and makes recovery harder, but those costs are acceptable for this research format. A rectangular transport profile remains a plausible V2 option.
