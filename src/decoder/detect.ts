@@ -1,0 +1,11 @@
+import type { Pt } from './homography';
+const lum=(d:Uint8ClampedArray,i:number)=>.2126*d[i]+.7152*d[i+1]+.0722*d[i+2];
+export function detectHex(image:ImageData):Pt[]{const {width:w,height:h,data}=image,scale=Math.max(1,Math.ceil(Math.max(w,h)/420)),sw=Math.ceil(w/scale),sh=Math.ceil(h/scale),dark=new Uint8Array(sw*sh);let min=255,max=0;for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){const v=lum(data,4*(Math.min(h-1,y*scale)*w+Math.min(w-1,x*scale)));min=Math.min(min,v);max=Math.max(max,v);}const th=min+(max-min)*.31;for(let y=0;y<sh;y++)for(let x=0;x<sw;x++)dark[y*sw+x]=lum(data,4*(Math.min(h-1,y*scale)*w+Math.min(w-1,x*scale)))<th?1:0;
+  const seen=new Uint8Array(dark.length);let best:number[]=[];for(let i=0;i<dark.length;i++){if(!dark[i]||seen[i])continue;const q=[i],comp:number[]=[];seen[i]=1;for(let p=0;p<q.length;p++){const z=q[p],x=z%sw,y=(z/sw)|0;comp.push(z);for(const n of [z-1,z+1,z-sw,z+sw])if(n>=0&&n<dark.length&&!seen[n]&&dark[n]&&Math.abs(n%sw-x)<=1){seen[n]=1;q.push(n);}}if(comp.length>best.length)best=comp;}
+  if(best.length<80)throw new Error('未检测到高对比六边形边界');const points=best.filter((_,i)=>i%Math.max(1,Math.floor(best.length/2500))===0).map(z=>({x:(z%sw)*scale,y:((z/sw)|0)*scale}));const hull=convexHull(points);if(hull.length<6)throw new Error('边界轮廓不足');const cx=hull.reduce((s,p)=>s+p.x,0)/hull.length,cy=hull.reduce((s,p)=>s+p.y,0)/hull.length;
+  // Six angular sectors, offset selected for the most corner-like (largest radius) support points.
+  let result:Pt[]=[],bestScore=-1;for(let k=0;k<120;k++){const off=k*Math.PI/360;const chosen:Pt[]=[];let score=0;for(let j=0;j<6;j++){const a=off+j*Math.PI/3;let bp=hull[0],bs=-Infinity;for(const p of hull){const s=(p.x-cx)*Math.cos(a)+(p.y-cy)*Math.sin(a);if(s>bs){bs=s;bp=p;}}chosen.push(bp);score+=bs;}if(new Set(chosen).size===6&&score>bestScore){bestScore=score;result=chosen;}}
+  result.sort((a,b)=>Math.atan2(a.y-cy,a.x-cx)-Math.atan2(b.y-cy,b.x-cx));return result;
+}
+function convexHull(ps:Pt[]){const p=[...ps].sort((a,b)=>a.x-b.x||a.y-b.y),cross=(o:Pt,a:Pt,b:Pt)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x),lo:Pt[]=[],up:Pt[]=[];for(const x of p){while(lo.length>=2&&cross(lo.at(-2)!,lo.at(-1)!,x)<=0)lo.pop();lo.push(x);}for(const x of p.reverse()){while(up.length>=2&&cross(up.at(-2)!,up.at(-1)!,x)<=0)up.pop();up.push(x);}return lo.slice(0,-1).concat(up.slice(0,-1));}
+
