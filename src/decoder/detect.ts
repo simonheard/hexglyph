@@ -5,15 +5,16 @@ type Candidate={corners:Pt[];score:number;cx:number;cy:number;area:number};
 
 export function detectHex(image:ImageData):Pt[]{return detectHexCandidates(image)[0];}
 
-export function detectHexCandidates(image:ImageData):Pt[][]{
+export function detectHexCandidates(image:ImageData,onProgress?:(fraction:number,detail:string)=>void):Pt[][]{
  const{width:w,height:h,data}=image,scale=Math.max(1,Math.ceil(Math.max(w,h)/720)),sw=Math.ceil(w/scale),sh=Math.ceil(h/scale),values=new Float32Array(sw*sh),hist=new Uint32Array(256);
  for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){
   let sum=0,count=0;
   for(let yy=y*scale;yy<Math.min(h,(y+1)*scale);yy++)for(let xx=x*scale;xx<Math.min(w,(x+1)*scale);xx++){sum+=lum(data,4*(yy*w+xx));count++;}
   const value=sum/count;values[y*sw+x]=value;hist[Math.max(0,Math.min(255,Math.round(value)))]++;
  }
- const low=percentile(hist,.01),high=percentile(hist,.99),candidates:Candidate[]=[];
- for(const fraction of [.22,.32,.42,.52,.62])collect(values,sw,sh,scale,low+(high-low)*fraction,candidates);
+ onProgress?.(.22,'分析亮度分布');
+ const low=percentile(hist,.01),high=percentile(hist,.99),candidates:Candidate[]=[],thresholds=[.22,.32,.42,.52,.62];
+ thresholds.forEach((fraction,index)=>{collect(values,sw,sh,scale,low+(high-low)*fraction,candidates);onProgress?.(.22+.7*(index+1)/thresholds.length,`检测边界阈值 ${index+1}/${thresholds.length}`);});
  candidates.sort((a,b)=>b.score-a.score);
  const unique:Candidate[]=[];
  for(const candidate of candidates){
@@ -22,6 +23,7 @@ export function detectHexCandidates(image:ImageData):Pt[][]{
   if(unique.length===6)break;
  }
  if(!unique.length)throw new Error('未检测到高对比六边形边界');
+ onProgress?.(1,`找到 ${unique.length} 个候选轮廓`);
  return unique.map(x=>x.corners);
 }
 

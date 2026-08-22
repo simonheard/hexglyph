@@ -1,8 +1,7 @@
-import type {DecodeImageResult} from './decodeImage';
+import type {DecodeImageResult,DecodeProgress} from './decodeImage';
 
-export type DecodePhase='loading'|'decoding';
 type Message=
- |{type:'phase';id:number;phase:DecodePhase}
+ |{type:'progress';id:number;progress:DecodeProgress}
  |{type:'result';id:number;result:DecodeImageResult}
  |{type:'error';id:number;message:string};
 
@@ -12,7 +11,7 @@ let nextId=1;
 
 export function canDecodeInWorker(){return typeof Worker!=='undefined'&&typeof OffscreenCanvas!=='undefined'&&typeof createImageBitmap!=='undefined';}
 
-export function startDecodeWorker(file:Blob,onPhase:(phase:DecodePhase)=>void):DecodeJob{
+export function startDecodeWorker(file:Blob,onProgress:(progress:DecodeProgress)=>void):DecodeJob{
  const id=nextId++,worker=new Worker(new URL('./decode.worker.ts',import.meta.url),{type:'module'});
  let rejectJob:(reason?:unknown)=>void=()=>{},settled=false;
  const finish=()=>{if(!settled){settled=true;worker.terminate();}};
@@ -21,7 +20,7 @@ export function startDecodeWorker(file:Blob,onPhase:(phase:DecodePhase)=>void):D
   worker.onmessage=(event:MessageEvent<Message>)=>{
    const message=event.data;
    if(message.id!==id||settled)return;
-   if(message.type==='phase'){onPhase(message.phase);return;}
+   if(message.type==='progress'){onProgress(message.progress);return;}
    finish();
    if(message.type==='result')resolve(message.result);
    else reject(new Error(message.message));
