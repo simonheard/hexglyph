@@ -1,12 +1,13 @@
 import{describe,expect,it}from'vitest';
-import{encodeBytes,encodePayload,decodeSymbols,maxPayloadBytes,PayloadTooLargeError}from'../protocol/codec';
+import{encodeBytes,encodeBytesV1,encodePayload,decodeSymbols,maxPayloadBytes,PayloadTooLargeError}from'../protocol/codec';
 import{bytesToSymbols,symbolsToBytes}from'../protocol/packing';
 import{interleave,deinterleave,permutation}from'../protocol/interleave';
 import{crc32}from'../protocol/crc32';
 
 describe('Protocol V1',()=>{
  it.each(['ASCII','中文 UTF-8 🚀','a'.repeat(120)])('round trips %s',text=>{const e=encodePayload(text,'high','dense');expect(decodeSymbols(e.symbols,e.radius,e.mode).text).toBe(text)});
- it('round trips arbitrary bytes and grows the radius automatically',()=>{const small=encodeBytes(Uint8Array.from([0,255,1,254]),'high','dense'),large=encodeBytes(Uint8Array.from({length:140},(_,i)=>(i*91)&255),'high','dense');expect(decodeSymbols(small.symbols,small.radius,small.mode).bytes).toEqual(Uint8Array.from([0,255,1,254]));expect(large.radius).toBeGreaterThan(small.radius)});
+ it('round trips multi-block bytes and grows the radius automatically',()=>{const small=encodeBytes(Uint8Array.from([0,255,1,254]),'high','dense'),large=encodeBytes(Uint8Array.from({length:1000},(_,i)=>(i*91)&255),'high','dense');expect(decodeSymbols(small.symbols,small.radius,small.mode).bytes).toEqual(Uint8Array.from([0,255,1,254]));expect(decodeSymbols(large.symbols,large.radius,large.mode).bytes).toEqual(Uint8Array.from({length:1000},(_,i)=>(i*91)&255));expect(large.radius).toBeGreaterThan(small.radius)});
+ it('keeps decoding legacy V1 symbols',()=>{const payload=new TextEncoder().encode('legacy HG1 payload'),encoded=encodeBytesV1(payload,'high','dense'),decoded=decodeSymbols(encoded.symbols,encoded.radius,encoded.mode);expect(decoded.version).toBe(1);expect(decoded.bytes).toEqual(payload)});
  it('reports the exact payload limit for the selected channel',()=>{const max=maxPayloadBytes('high','dense');expect(()=>encodeBytes(new Uint8Array(max),'high','dense')).not.toThrow();expect(()=>encodeBytes(new Uint8Array(max+1),'high','dense')).toThrow(PayloadTooLargeError)});
  it('packs 3-bit symbols without loss',()=>{const b=Uint8Array.from({length:64},(_,i)=>(i*73)&255),s=bytesToSymbols(b,3);expect(symbolsToBytes(s,3,b.length)).toEqual(b)});
  it('packs 2-bit symbols without loss',()=>{const b=Uint8Array.from({length:64},(_,i)=>(i*41)&255),s=bytesToSymbols(b,2);expect(symbolsToBytes(s,2,b.length)).toEqual(b)});

@@ -14,5 +14,14 @@ export const V1 = {
     extreme: { label: 'Extreme · 40%', ratio: 0.40 }
   }
 } as const;
+export const V2 = {
+  ...V1,
+  magic: new Uint8Array([0x48, 0x47, 0x32, 0x21]), // HG2!
+  version: 2,
+  sizes: [13, 17, 21, 25, 29, 33, 37, 41, 45, 49],
+  gapRatio: 0,
+  markerRatio: 0.40
+} as const;
+export const SUPPORTED_SIZES=[...new Set([...V1.sizes,...V2.sizes])].sort((a,b)=>a-b);
 export type EccProfile = keyof typeof V1.profiles;
 export type DensityMode = 'robust' | 'dense';

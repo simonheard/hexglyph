@@ -1,6 +1,6 @@
 # HexGlyph Lab
 
-HexGlyph is an experimental, self-contained 2D visual code. It is **not QR-compatible**. Protocol V1 combines a regular hexagonal silhouette, triangular-lattice sampling, four adaptive colors, an optional center marker, Reed–Solomon error correction, and spatial interleaving.
+HexGlyph is an experimental, self-contained 2D visual code. It is **not QR-compatible**. Protocol V2 combines a regular hexagonal silhouette, full honeycomb cells, four adaptive colors, multi-block Reed–Solomon error correction, and full-area spatial interleaving. The decoder remains compatible with V1 disc symbols.
 
 The repository contains the browser encoder, PNG/SVG export, upload and camera decoder, confidence/debug overlay, protocol implementation, and deterministic logical/image-channel tests.
 
@@ -22,6 +22,8 @@ npm run palette   # compare candidate palette separation
 For Cloudflare Pages, use build command `npm run build` and output directory `dist`.
 
 ## What V1 deliberately changed
+
+V2 keeps these V1 geometry and camera decisions, replaces circular dots with complete hexagonal cells, adds multi-block RS framing, expands automatic radii through 49, and defaults the UI to Robust mode. See the V2 protocol document for the current format.
 
 - The outer shape stays hexagonal because it gives three equivalent lattice directions and a distinctive silhouette. It is less pixel-efficient than a rectangular crop and makes recovery harder, but those costs are acceptable for this research format. A rectangular transport profile remains a plausible V2 option.
 - The border is a continuous high-contrast grayscale hexagon. Geometry is recovered before color. Rotation and reflection are resolved by trying all 12 symmetries and accepting only a valid magic/version + RS + CRC result. The three border dashes are a fast-path orientation hint, not a correctness dependency.
@@ -57,6 +59,7 @@ This is a deterministic regression envelope, **not a statistically meaningful ph
 
 ## Documentation
 
+- [Protocol V2](docs/PROTOCOL_V2.md)
 - [Protocol V1](docs/PROTOCOL_V1.md)
 - [Architecture and engineering decisions](docs/ARCHITECTURE.md)
 - [Testing and next work](docs/TESTING.md)
